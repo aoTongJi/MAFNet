@@ -20,7 +20,6 @@ class LinformerFusion(nn.Module):
         B, C, H, W = detail.shape
         seq_len = H * W
         
-        # 动态创建 Linformer 并移动到正确的设备
         linformer = Linformer(
             dim=C * 2,  # detail 和 smooth 拼接
             seq_len=seq_len,
@@ -28,18 +27,13 @@ class LinformerFusion(nn.Module):
             heads=self.heads,
             k=self.k
         )
-        # 将 linformer 移动到与输入相同的设备
         device = detail.device
         linformer = linformer.to(device)
         
-        # 拼接两个 cost volume： [B, 2C, H, W]
         x = torch.cat([detail, smooth], dim=1)
-        # 展平为序列： [B, N, 2C]
         x = x.permute(0, 2, 3, 1).reshape(B, -1, 2 * C)
-        # 通过 Linformer
         x = linformer(x)  # [B, N, 2C]
         x = self.project(x)    # [B, N, C]
-        # reshape 回 cost volume： [B, C, H, W]
         x = x.reshape(B, H, W, C).permute(0, 3, 1, 2)
         return x
 
@@ -85,9 +79,6 @@ class Aggregation(nn.Module):
             self.att0 = Guided_Cost_Volume_Excitation(in_channels, 64)
             self.att2 = Guided_Cost_Volume_Excitation(in_channels * 2, 64)
             self.att4 = Guided_Cost_Volume_Excitation(in_channels * 4, 192)
-            # self.att0 = AttentionModule(in_channels, 96)
-            # self.att2 = AttentionModule(in_channels * 2, 64)
-            # self.att4 = AttentionModule(in_channels * 4, 192)
 
     def forward(self, x, features_left):
         x = self.conv0(x)
@@ -191,5 +182,4 @@ class Guided_Cost_Volume_Excitation(nn.Module):
 
     def forward(self, cv, im):
         im_att = self.im_att(im)
-        # cv = torch.sigmoid(im_att) * cv
         return im_att * cv

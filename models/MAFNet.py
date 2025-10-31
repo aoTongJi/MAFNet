@@ -4,7 +4,6 @@ import torch.utils.data
 import torch.nn.functional as F
 from .submodule import *
 from .fnet_mobile_vit import FeatureNet_vit, DeconvLayer
-# from .fnet import FeatureNet, DeconvLayer
 
 import math
 import gc
@@ -51,7 +50,6 @@ class CostVolume(nn.Module):
 class MAFNet(nn.Module):
     def __init__(self, args):
         super(MAFNet, self).__init__()
-        # self.fnet = FeatureNet()
         self.fnet = FeatureNet_vit()
         self.cost_stem = BasicConv(48, 32, kernel_size=3, stride=1, padding=1)
 
@@ -88,7 +86,7 @@ class MAFNet(nn.Module):
         self.build_cv = CostVolume()
 
         self.fusion = LinformerFusion(
-            in_channels=48,  # 和 cost_agg 输出通道一致
+            in_channels=48, 
             k=256, depth=1, heads=4
         )
         
@@ -129,14 +127,14 @@ class MAFNet(nn.Module):
         cv = self.fusion(cv_0, cv_1)
 
         prob = F.softmax(cv, dim=1)
-        disp = disparity_regression(prob, max_disp // 4)  # [B, 1, H//4, W//4]
+        disp = disparity_regression(prob, max_disp // 4) 
 
         xspx = self.spx_4(features_left[0])
         xspx = self.spx_2(xspx, stem_2x)
         spx_pred = self.spx(xspx)
         spx_pred = F.softmax(spx_pred, 1)
 
-        disp_up = context_upsample(disp, spx_pred) # [B, 1, H, W]
+        disp_up = context_upsample(disp, spx_pred)
         
         
         if self.training:

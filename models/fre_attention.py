@@ -32,7 +32,7 @@ class FrequencyDomainAttention(nn.Module):
         
         h_dist = (h_indices - center_h) ** 2
         w_dist = (w_indices - center_w) ** 2
-        dist = torch.sqrt(h_dist + w_dist).squeeze(0)  # 移除第一个维度
+        dist = torch.sqrt(h_dist + w_dist).squeeze(0)
         min_dim = min(H, W)
         high_freq_mask = (dist > min_dim * self.high_freq_threshold).float()
         low_freq_mask = (dist < min_dim * self.low_freq_threshold).float()
@@ -53,9 +53,9 @@ class FrequencyDomainAttention(nn.Module):
         return freq_feature
 
     def forward(self, features_left):
-        x4 = self.conv0(features_left[0])  # 1/4 scale
-        x8 = self.conv1(features_left[1])  # 1/8 scale  
-        x16 = self.conv2(features_left[2]) # 1/16 scale
+        x4 = self.conv0(features_left[0]) 
+        x8 = self.conv1(features_left[1]) 
+        x16 = self.conv2(features_left[2])
         
         x8_4 = F.interpolate(x8, x4.shape[2:], mode='bilinear', align_corners=False)
         x16_4 = F.interpolate(x16, x4.shape[2:], mode='bilinear', align_corners=False)
@@ -152,15 +152,15 @@ class ImprovedFrequencyDomainAttention(nn.Module):
         low_mask  = low_mask  / denom
         mid_mask  = mid_mask  / denom
         high_mask = high_mask / denom
-        return low_mask, mid_mask, high_mask  # [1,1,H,W] each
+        return low_mask, mid_mask, high_mask  
 
     def _fft_bands(self, x):
         B, C, H, W = x.shape
 
         X = torch.fft.fft2(x, dim=(-2, -1))
-        X = torch.fft.fftshift(X, dim=(-2, -1))                   # 对齐中心
+        X = torch.fft.fftshift(X, dim=(-2, -1))                
 
-        low_m, mid_m, high_m = self._soft_band_masks(H, W, x.device)  # [1,1,H,W]
+        low_m, mid_m, high_m = self._soft_band_masks(H, W, x.device)  
 
         low_m  = low_m.expand(B, C, H, W)
         mid_m  = mid_m.expand(B, C, H, W)
@@ -180,7 +180,7 @@ class ImprovedFrequencyDomainAttention(nn.Module):
         mid  = ifft_mag(X_mid)
         high = ifft_mag(X_high)
 
-        out = torch.stack([low, mid, high], dim=1)  # [B, 3, C, H, W]
+        out = torch.stack([low, mid, high], dim=1)  
         return out
 
     def forward(self, features_left):

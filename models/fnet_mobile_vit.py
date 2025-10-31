@@ -26,21 +26,18 @@ class FeatureNet_vit(nn.Module):
         
         chans = [32, 64, 96, 128, 160]
 
-        # 手动提取各个层的特征
         self.stem = self.backbone.stem
-        self.layer0 = self.backbone.layers[0]  # 1/2
-        self.layer1 = self.backbone.layers[1]  # 1/4  
-        self.layer2 = self.backbone.layers[2]  # 1/8
-        self.layer3 = self.backbone.layers[3]  # 1/16
-        self.layer4 = self.backbone.layers[4]  # 1/32
+        self.layer0 = self.backbone.layers[0]  
+        self.layer1 = self.backbone.layers[1]  
+        self.layer2 = self.backbone.layers[2]  
+        self.layer3 = self.backbone.layers[3]  
+        self.layer4 = self.backbone.layers[4]  
 
-        # 上采样层
         self.deconv32_16 = DeconvLayer(chans[4], chans[3])        
         self.deconv16_8 = DeconvLayer(chans[3]*2, chans[2])       
         self.deconv8_4 = DeconvLayer(chans[2]*2, chans[1])        
         self.conv4 = BasicConv(chans[1]*2, 32, kernel_size=3, stride=1, padding=1)
         
-        # 添加额外的卷积层来调整通道数
         self.conv8 = BasicConv(chans[2], 64, kernel_size=3, stride=1, padding=1)  
         self.conv16 = BasicConv(chans[3], 192, kernel_size=3, stride=1, padding=1) 
 
