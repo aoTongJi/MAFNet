@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.utils.data
 import torch.nn.functional as F
 from .submodule import *
-from .fnet_mobilenetv2 import FeatureNet, DeconvLayer
+from .fnet_mobilenetv2 import FeatureNet_mbv2, DeconvLayer
 
 import math
 import gc
@@ -14,36 +14,49 @@ from fre_attention import *
 
 
 
-class GWCCostVolume(nn.Module):
-    def __init__(self, max_disp, num_groups=8):
-        super(GWCCostVolume, self).__init__()
-        self.max_disp = max_disp
+class GWCostVolume(nn.Module):
+    def __init__(self, num_groups=8):
+        super(CostVolume, self).__init__()
         self.num_groups = num_groups
 
-    def forward(self, feat_l, feat_r):
-        B, C, H, W = feat_l.shape
-        Ng = self.num_groups
-        assert C % Ng == 0, 
+        self.conv = BasicConv(64, 32, kernel_size=3, padding=1, stride=1)
+        self.desc = nn.Conv2d(32, 32, kernel_size=1, padding=0, stride=1)
 
+    def forward(self, left, right, maxdisp):
+        """
+        left, right: [B, 64, H, W]
+        return: cost volume [B, maxdisp, H, W]
+        """
+        left = self.desc(self.conv(left))    # [B, 32, H, W]
+        right = self.desc(self.conv(right))  # [B, 32, H, W]
+
+        B, C, H, W = left.shape
+        Ng = self.num_groups
+        assert C % Ng == 0,
         Cg = C // Ng
 
         # reshape to group-wise features
-        feat_l = feat_l.view(B, Ng, Cg, H, W)
-        feat_r = feat_r.view(B, Ng, Cg, H, W)
+        left = left.view(B, Ng, Cg, H, W)
+        right = right.view(B, Ng, Cg, H, W)
 
-        cost_volume = feat_l.new_zeros(B, Ng, self.max_disp, H, W)
+        cv = []
 
-        for d in range(self.max_disp):
+        for d in range(maxdisp):
             if d > 0:
-                # shift right feature
-                corr = (feat_l[:, :, :, :, d:] *
-                        feat_r[:, :, :, :, :-d]).mean(dim=2)
-                cost_volume[:, :, d, :, d:] = corr
+                # group-wise correlation
+                cost = (
+                    left[:, :, :, :, d:] *
+                    right[:, :, :, :, :-d]
+                ).mean(dim=2)        
+                cost = cost.mean(dim=1, keepdim=True)  
+                cost = F.pad(cost, (d, 0, 0, 0))
             else:
-                corr = (feat_l * feat_r).mean(dim=2)
-                cost_volume[:, :, d, :, :] = corr
+                cost = (left * right).mean(dim=2)
+                cost = cost.mean(dim=1, keepdim=True)
 
-        return cost_volume
+            cv.append(cost)
+
+        return torch.cat(cv, dim=1)
 
 
 
@@ -52,7 +65,7 @@ class GWCCostVolume(nn.Module):
 class MAFNet(nn.Module):
     def __init__(self, args):
         super(MAFNet, self).__init__()
-        self.fnet = FeatureNet_vit()
+        self.fnet = FeatureNet_mbv2()
         self.cost_stem = BasicConv(48, 32, kernel_size=3, stride=1, padding=1)
 
         self.cost_agg0 = Aggregation(in_channels=32,
@@ -85,7 +98,7 @@ class MAFNet(nn.Module):
             BasicConv(32, 32, kernel_size=3, stride=1, padding=1)
             )
 
-        self.build_cv = CostVolume()
+        self.build_cv = GWCostVolume()
 
         self.fusion = LinformerFusion(
             in_channels=48, 
