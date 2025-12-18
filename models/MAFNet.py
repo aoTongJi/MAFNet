@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.utils.data
 import torch.nn.functional as F
 from .submodule import *
-from .fnet_mobile_vit import FeatureNet_vit, DeconvLayer
+from .fnet_mobilenetv2 import FeatureNet, DeconvLayer
 
 import math
 import gc
@@ -14,34 +14,36 @@ from fre_attention import *
 
 
 
+class GWCCostVolume(nn.Module):
+    def __init__(self, max_disp, num_groups=8):
+        super(GWCCostVolume, self).__init__()
+        self.max_disp = max_disp
+        self.num_groups = num_groups
 
-class CostVolume(nn.Module):
-    def __init__(self):
-        super(CostVolume, self).__init__()
-        self.conv = BasicConv(64, 32, kernel_size=3, padding=1, stride=1)
-        self.desc = nn.Conv2d(32, 32, kernel_size=1, padding=0, stride=1)
-        self.reduce_mean = nn.Conv2d(32, 1, kernel_size=1,stride=1,padding=0,bias=False)
+    def forward(self, feat_l, feat_r):
+        B, C, H, W = feat_l.shape
+        Ng = self.num_groups
+        assert C % Ng == 0, 
 
-        self.reduce_mean.weight.data.fill_(1.0 / 32.0)
-        self.reduce_mean.weight.requires_grad = False
-        
+        Cg = C // Ng
 
+        # reshape to group-wise features
+        feat_l = feat_l.view(B, Ng, Cg, H, W)
+        feat_r = feat_r.view(B, Ng, Cg, H, W)
 
-    def forward(self, left, right, maxdisp):
-        left = self.desc(self.conv(left))
-        right = self.desc(self.conv(right))
-        cv = []
-        for i in range(maxdisp):
-            if i > 0:
-                cost = self.reduce_mean(left[:,:,:,i:] * right[:,:,:,:-i])
-                cost = F.pad(cost, (i, 0, 0, 0))
-                cv.append(cost)
+        cost_volume = feat_l.new_zeros(B, Ng, self.max_disp, H, W)
 
+        for d in range(self.max_disp):
+            if d > 0:
+                # shift right feature
+                corr = (feat_l[:, :, :, :, d:] *
+                        feat_r[:, :, :, :, :-d]).mean(dim=2)
+                cost_volume[:, :, d, :, d:] = corr
             else:
-                cost = self.reduce_mean(left * right)
-                cv.append(cost)
+                corr = (feat_l * feat_r).mean(dim=2)
+                cost_volume[:, :, d, :, :] = corr
 
-        return torch.cat(cv, dim=1)
+        return cost_volume
 
 
 
