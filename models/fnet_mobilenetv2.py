@@ -34,7 +34,6 @@ class FeatureNet_mbv2(nn.Module):
         self.layer4 = self.backbone.layer4    
         self.layer5 = self.backbone.layer5   
 
-        # -------- Decoder --------
         self.deconv32_16 = DeconvLayer(320, 96)
         self.deconv16_8  = DeconvLayer(96 * 2, 32)
         self.deconv8_4   = DeconvLayer(32 * 2, 24)
