@@ -16,46 +16,31 @@ from fre_attention import *
 
 class GWCostVolume(nn.Module):
     def __init__(self, num_groups=8):
-        super(CostVolume, self).__init__()
+        super(GWCostVolume, self).__init__()
         self.num_groups = num_groups
-
         self.conv = BasicConv(64, 32, kernel_size=3, padding=1, stride=1)
         self.desc = nn.Conv2d(32, 32, kernel_size=1, padding=0, stride=1)
+        self.group_fusion = nn.Conv2d(num_groups, 1, kernel_size=1, stride=1, padding=0, bias=False)
+        nn.init.constant_(self.group_fusion.weight, 1.0 / num_groups)
 
     def forward(self, left, right, maxdisp):
-        """
-        left, right: [B, 64, H, W]
-        return: cost volume [B, maxdisp, H, W]
-        """
-        left = self.desc(self.conv(left))    # [B, 32, H, W]
-        right = self.desc(self.conv(right))  # [B, 32, H, W]
-
-        B, C, H, W = left.shape
+        left_feat = self.desc(self.conv(left))  
+        right_feat = self.desc(self.conv(right)) 
+        B, C, H, W = left_feat.shape
         Ng = self.num_groups
-        assert C % Ng == 0,
         Cg = C // Ng
-
-        # reshape to group-wise features
-        left = left.view(B, Ng, Cg, H, W)
-        right = right.view(B, Ng, Cg, H, W)
-
+        left_g = left_feat.view(B, Ng, Cg, H, W)
+        right_g = right_feat.view(B, Ng, Cg, H, W)
         cv = []
-
-        for d in range(maxdisp):
-            if d > 0:
-                # group-wise correlation
-                cost = (
-                    left[:, :, :, :, d:] *
-                    right[:, :, :, :, :-d]
-                ).mean(dim=2)        
-                cost = cost.mean(dim=1, keepdim=True)  
-                cost = F.pad(cost, (d, 0, 0, 0))
+        for i in range(maxdisp):
+            if i > 0:
+                cost = (left_g[:, :, :, :, i:] * right_g[:, :, :, :, :-i]).mean(dim=2)
+                cost = self.group_fusion(cost)
+                cost = F.pad(cost, (i, 0, 0, 0))
             else:
-                cost = (left * right).mean(dim=2)
-                cost = cost.mean(dim=1, keepdim=True)
-
+                cost = (left_g * right_g).mean(dim=2)
+                cost = self.group_fusion(cost)
             cv.append(cost)
-
         return torch.cat(cv, dim=1)
 
 
