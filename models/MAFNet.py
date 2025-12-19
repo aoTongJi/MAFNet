@@ -53,13 +53,7 @@ class MAFNet(nn.Module):
         self.fnet = FeatureNet_mbv2()
         self.cost_stem = BasicConv(48, 32, kernel_size=3, stride=1, padding=1)
 
-        self.cost_agg0 = Aggregation(in_channels=32,
-                                    left_att=True,
-                                    blocks=[4, 6, 8],
-                                    expanse_ratio=4,
-                                    backbone_channels=[64, 64, 192])
-
-        self.cost_agg1 = Aggregation(in_channels=32,
+        self.cost_agg = Aggregation(in_channels=32,
                                     left_att=True,
                                     blocks=[4, 6, 8],
                                     expanse_ratio=4,
@@ -122,8 +116,8 @@ class MAFNet(nn.Module):
         spa_att = self.spa_att(features_left)
         cv_0 = spa_att * cv
         cv_1 = (1. - spa_att) * cv
-        cv_0 = self.cost_agg0(cv_0, features_left)
-        cv_1 = self.cost_agg1(cv_1, features_left)
+        cv_0 = self.cost_agg(cv_0, features_left)
+        cv_1 = self.cost_agg(cv_1, features_left)
         cv = self.fusion(cv_0, cv_1)
 
         prob = F.softmax(cv, dim=1)
