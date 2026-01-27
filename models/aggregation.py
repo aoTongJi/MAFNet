@@ -21,7 +21,7 @@ class LinformerFusion(nn.Module):
         seq_len = H * W
         
         linformer = Linformer(
-            dim=C * 2,  # detail 和 smooth 拼接
+            dim=C * 2,
             seq_len=seq_len,
             depth=self.depth,
             heads=self.heads,
