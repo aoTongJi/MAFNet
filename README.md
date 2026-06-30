@@ -1,4 +1,4 @@
-# 🚀 MAFNet🚀 
+ICMR26 # 🚀 MAFNet🚀 
 MAFNet: Multi-frequency-Adaptive-Fusion-Network-for-Real-time-Stereo-Matching
 
 # Abstract
