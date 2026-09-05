@@ -11,3 +11,21 @@ Existing stereo matching networks typically rely on either cost-volume construct
 | Model | Download | Extraction Code |
 |---|---|
 | [Baidu Netdisk](https://pan.baidu.com/s/1oSQLu-nohAbim3Tccb6yfg) | `qe8e` |
+
+
+
+## Citation
+
+If you find our work useful in your research, please consider citing our paper:
+
+```bibtex
+
+@inproceedings{zhang2024mafnet,
+  title={MAFNet: Multi-scale Attention Fusion Network for Enhanced Stereo Matching},
+  author={Zhang, Qingwei and Zhang, Ding and Lu, Yunhua and He, Xianzhong and Zhang, Junan},
+  booktitle={Proceedings of the 4th Asia-Pacific Artificial Intelligence and Big Data Forum},
+  pages={120--125},
+  year={2024}
+}
+
+```
