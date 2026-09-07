@@ -20,12 +20,12 @@ If you find our work useful in your research, please consider citing our paper:
 
 ```bibtex
 
-@inproceedings{zhang2024mafnet,
-  title={MAFNet: Multi-scale Attention Fusion Network for Enhanced Stereo Matching},
-  author={Zhang, Qingwei and Zhang, Ding and Lu, Yunhua and He, Xianzhong and Zhang, Junan},
-  booktitle={Proceedings of the 4th Asia-Pacific Artificial Intelligence and Big Data Forum},
-  pages={120--125},
-  year={2024}
+@inproceedings{xu2026mafnet,
+  title={MAFNet: Multi-frequency Adaptive Fusion Network for Real-time Stereo Matching},
+  author={Xu, Ao and Zhao, Rujin and Xu, Xiong and Huang, Boceng and Jia, Yujia and Long, Hongfeng and Chen, Fuxuan and Cao, Zilong and Chen, Fangyuan},
+  booktitle={Proceedings of the 2026 International Conference on Multimedia Retrieval},
+  pages={567--576},
+  year={2026}
 }
 
 ```
